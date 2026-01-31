@@ -12,12 +12,13 @@ class Renderer
 
     # RENDER ORDER:
     # 1. Road surface (background)
-    # 2. Lane dividers (on road)
-    # 3. Game objects (player, obstacles, coins) in depth order
-    # 4. Road edges (lines on top for visual clarity)
+    # 2. Road edges (lines under everything)
+    # 3. Lane dividers (on road)
+    # 4. Game objects (player, obstacles, coins) in depth order - should be ON TOP of road edges
     # 5. UI (always on top)
 
     # Draw road (use road_offset which moves at same speed as objects)
+    # Road edges are drawn first so objects appear on top of them
     @road_renderer.render(args, game_state.road_offset)
 
     # Draw game objects in depth order

@@ -18,7 +18,7 @@ class Player
     @x += @horizontal_velocity
 
     # Clamp to road boundaries
-    @x = [[@x, Config::PLAYER_MIN_X].max, Config::PLAYER_MAX_X].min
+    @x = [[@x, Config::ROAD_MIN_X].max, Config::ROAD_MAX_X].min
   end
 
   def move_left

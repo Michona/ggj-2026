@@ -1,11 +1,10 @@
 # Coin entity class
 class Coin
-  attr_accessor :x, :y, :w, :h, :lane
+  attr_accessor :x, :y, :w, :h
   attr_reader :color
 
-  def initialize(lane, distance)
-    @lane = lane
-    @x = Config::LANES[@lane]
+  def initialize(x_position, distance)
+    @x = x_position
     @y = distance
     @w = Config::COIN_SIZE
     @h = Config::COIN_SIZE

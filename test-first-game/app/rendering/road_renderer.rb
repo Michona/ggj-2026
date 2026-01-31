@@ -15,12 +15,12 @@ class RoadRenderer
   def draw_road_surface(args)
     # Draw the main road surface as a trapezoid
     # Near edge (bottom of screen, close to player)
-    near_left = @camera.world_to_screen(Config::LANES.first - Config::LANE_WIDTH / 2, 0)
-    near_right = @camera.world_to_screen(Config::LANES.last + Config::LANE_WIDTH / 2, 0)
+    near_left = @camera.world_to_screen(Config::ROAD_MIN_X, 0)
+    near_right = @camera.world_to_screen(Config::ROAD_MAX_X, 0)
 
     # Far edge (vanishing point)
-    far_left = @camera.world_to_screen(Config::LANES.first - Config::LANE_WIDTH / 2, @camera.world_depth)
-    far_right = @camera.world_to_screen(Config::LANES.last + Config::LANE_WIDTH / 2, @camera.world_depth)
+    far_left = @camera.world_to_screen(Config::ROAD_MIN_X, @camera.world_depth)
+    far_right = @camera.world_to_screen(Config::ROAD_MAX_X, @camera.world_depth)
 
     # Calculate total height of road on screen
     road_height = far_left[:y] - near_left[:y]
@@ -48,19 +48,16 @@ class RoadRenderer
   end
 
   def draw_lane_dividers(args, distance)
-    # Draw lane dividers between the 9 lanes (8 dividers total)
+    # Draw only 2 lane dividers (creating 3 visible lanes in the center)
+    # These are purely visual - gameplay uses continuous coordinates
     divider_spacing = Config::LANE_DIVIDER_SPACING
     divider_length = Config::LANE_DIVIDER_LENGTH
 
     # Animate dividers moving toward player
     offset = distance.to_i % divider_spacing
 
-    # Calculate divider positions (midpoint between each pair of lanes)
-    divider_positions = []
-    (Config::LANES.length - 1).times do |i|
-      divider_x = (Config::LANES[i] + Config::LANES[i + 1]) / 2.0
-      divider_positions << divider_x
-    end
+    # Use the predefined divider positions from config
+    divider_positions = Config::LANE_DIVIDER_POSITIONS
 
     # Draw dividers at multiple depths
     world_y = -offset
@@ -68,13 +65,13 @@ class RoadRenderer
       # Calculate scale at both ends of the divider for proper perspective
       scale_start = @camera.perspective_scale(world_y)
       scale_end = @camera.perspective_scale(world_y + divider_length)
-      
+
       divider_width_start = Config::LANE_DIVIDER_WIDTH * scale_start
       divider_width_end = Config::LANE_DIVIDER_WIDTH * scale_end
 
-      # Draw all 8 lane dividers as trapezoids that taper toward vanishing point
+      # Draw the 2 lane dividers as trapezoids that taper toward vanishing point
       divider_positions.each do |divider_x|
-        draw_divider_trapezoid(args, divider_x, world_y, divider_length, 
+        draw_divider_trapezoid(args, divider_x, world_y, divider_length,
                                divider_width_start, divider_width_end)
       end
 
@@ -122,34 +119,36 @@ class RoadRenderer
 
   def draw_road_edges(args)
     # Draw left edge
-    near_left = @camera.world_to_screen(Config::LANES.first - Config::LANE_WIDTH / 2, 0)
-    far_left = @camera.world_to_screen(Config::LANES.first - Config::LANE_WIDTH / 2, @camera.world_depth)
+    near_left = @camera.world_to_screen(Config::ROAD_MIN_X, 0)
+    far_left = @camera.world_to_screen(Config::ROAD_MIN_X, @camera.world_depth)
 
-    args.outputs.lines << {
-      x: near_left.x,
-      y: near_left.y,
-      x2: far_left.x,
-      y2: far_left.y,
+    # Use primitives instead of lines to control render order
+    args.outputs.primitives << {
+      x: near_left[:x],
+      y: near_left[:y],
+      x2: far_left[:x],
+      y2: far_left[:y],
       r: Config::ROAD_EDGE_COLOR[:r],
       g: Config::ROAD_EDGE_COLOR[:g],
       b: Config::ROAD_EDGE_COLOR[:b],
       a: 255
-    }
+    }.line!
 
     # Draw right edge
-    near_right = @camera.world_to_screen(Config::LANES.last + Config::LANE_WIDTH / 2, 0)
-    far_right = @camera.world_to_screen(Config::LANES.last + Config::LANE_WIDTH / 2, @camera.world_depth)
+    near_right = @camera.world_to_screen(Config::ROAD_MAX_X, 0)
+    far_right = @camera.world_to_screen(Config::ROAD_MAX_X, @camera.world_depth)
 
-    args.outputs.lines << {
-      x: near_right.x,
-      y: near_right.y,
-      x2: far_right.x,
-      y2: far_right.y,
+    # Use primitives instead of lines to control render order
+    args.outputs.primitives << {
+      x: near_right[:x],
+      y: near_right[:y],
+      x2: far_right[:x],
+      y2: far_right[:y],
       r: Config::ROAD_EDGE_COLOR[:r],
       g: Config::ROAD_EDGE_COLOR[:g],
       b: Config::ROAD_EDGE_COLOR[:b],
       a: 255
-    }
+    }.line!
   end
 end
 

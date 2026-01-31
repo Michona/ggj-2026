@@ -1,21 +1,6 @@
-* EXCEPTION:
-* ERROR - :boxes_overlap? method missing on ~CollisionDetector~.
-
-#+begin_src ~CollisionDetector#inspect~
-#<CollisionDetector:0x1480a6370>
-#+end_src ~CollisionDetector#inspect~
-
-
-
-The method named
-  :boxes_overlap?
-with args
-  [{:x=>0, :y=>0, :w=>40, :h=>60}, {:x=>0, :y=>269, :w=>30, :h=>30}]
-doesn't exist on [CollisionDetector, #<Class:#<CollisionDetector:0x1480a6370>>].
-
-(suggestions above)
+* EXCEPTION: uninitialized constant Config::PLAYER_MIN_X
 ** Backtrace:
-*** app/systems/collision_detector.rb:38:in check_collisions
-*** app/systems/collision_detector.rb:37:in check_collisions
-*** app/game.rb:24:in tick
+*** app/entities/player.rb:21:in update
+*** app/game_state.rb:25:in update
+*** app/game.rb:18:in tick
 *** app/main.rb:33:in tick

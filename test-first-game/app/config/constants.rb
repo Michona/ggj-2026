@@ -7,14 +7,17 @@ module Config
   # Perspective settings - OutRun style
   VANISHING_POINT_X = 640  # Center of screen (horizontal)
   VANISHING_POINT_Y = 680  # Horizon near top of screen (~94% screen height)
-  PERSPECTIVE_STRENGTH = 0.35  # Aggressive scaling - distant objects much smaller
+  PERSPECTIVE_STRENGTH = 0.15  # Very aggressive scaling - distant objects much smaller (prevents stretching)
   WORLD_DEPTH = 1000  # Maximum depth in world coordinates
   CAMERA_Y_OFFSET = 0  # Road starts at bottom of screen (y=0)
 
-  # Lane configuration (world coordinates)
-  LANE_WIDTH = 100
-  LANES = [-400, -300, -200, -100, 0, 100, 200, 300, 400]  # X positions for 9 lanes
-  NUM_LANES = LANES.length
+  # Road configuration (world coordinates)
+  ROAD_MIN_X = -450  # Left edge of road
+  ROAD_MAX_X = 450   # Right edge of road
+  ROAD_WIDTH = ROAD_MAX_X - ROAD_MIN_X  # Total road width
+
+  # Lane markings (for visual reference only, not used for gameplay)
+  LANE_DIVIDER_POSITIONS = [-150, 150]  # X positions of the 2 lane dividers
 
   # Player settings
   PLAYER_START_X = 0  # Center of road (world coordinates)
@@ -23,14 +26,11 @@ module Config
   PLAYER_HEIGHT = 60
   PLAYER_Y_POSITION = 0  # Player is always at the front
   PLAYER_HORIZONTAL_SPEED = 10  # How fast player moves left/right
-  PLAYER_MIN_X = -450  # Left boundary (slightly beyond leftmost lane)
-  PLAYER_MAX_X = 450   # Right boundary (slightly beyond rightmost lane)
   PLAYER_COLOR = { r: 50, g: 150, b: 255 }  # Blue
 
   # Obstacle settings
-  OBSTACLE_MIN_SPAWN_DISTANCE = 950
-  OBSTACLE_MAX_SPAWN_DISTANCE = 1000
-  OBSTACLE_WIDTH = 80
+  OBSTACLE_MIN_WIDTH = 60   # Minimum obstacle width
+  OBSTACLE_MAX_WIDTH = 200  # Maximum obstacle width
   OBSTACLE_HEIGHT = 100
   OBSTACLE_BASE_SPEED = 8.0
   OBSTACLE_COLORS = [
@@ -40,8 +40,6 @@ module Config
   ]
 
   # Coin settings
-  COIN_MIN_SPAWN_DISTANCE = 900
-  COIN_MAX_SPAWN_DISTANCE = 1000
   COIN_SIZE = 30
   COIN_BASE_SPEED = 8.0
   COIN_SPEED_BOOST = 0.5

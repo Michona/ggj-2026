@@ -15,15 +15,20 @@ class Spawner
   def spawn_obstacles(game_state)
     # Spawn obstacles at regular intervals
     if game_state.distance - @last_obstacle_spawn > 150
-      # Random lane and lane span (1-3 lanes)
-      lane_span = rand(3) + 1  # 1, 2, or 3
-      max_start_lane = Config::NUM_LANES - lane_span
-      lane = rand(max_start_lane + 1)  # 0 to max_start_lane
+      # Random width between min and max
+      width = Config::OBSTACLE_MIN_WIDTH + rand(Config::OBSTACLE_MAX_WIDTH - Config::OBSTACLE_MIN_WIDTH)
+
+      # Random X position within road bounds (accounting for obstacle width)
+      # Ensure the obstacle stays fully within the road
+      half_width = width / 2.0
+      min_x = Config::ROAD_MIN_X + half_width
+      max_x = Config::ROAD_MAX_X - half_width
+      x_position = min_x + rand((max_x - min_x).to_i)
 
       # Always spawn at the horizon
       spawn_distance = Config::WORLD_DEPTH
 
-      obstacle = Obstacle.new(lane, lane_span, spawn_distance)
+      obstacle = Obstacle.new(x_position, width, spawn_distance)
       game_state.obstacles << obstacle
 
       @last_obstacle_spawn = game_state.distance
@@ -33,13 +38,16 @@ class Spawner
   def spawn_coins(game_state)
     # Spawn coins more frequently than obstacles
     if game_state.distance - @last_coin_spawn > 80
-      # Random lane
-      lane = rand(Config::NUM_LANES)
+      # Random X position within road bounds (accounting for coin size)
+      half_size = Config::COIN_SIZE / 2.0
+      min_x = Config::ROAD_MIN_X + half_size
+      max_x = Config::ROAD_MAX_X - half_size
+      x_position = min_x + rand((max_x - min_x).to_i)
 
       # Always spawn at the horizon
       spawn_distance = Config::WORLD_DEPTH
 
-      coin = Coin.new(lane, spawn_distance)
+      coin = Coin.new(x_position, spawn_distance)
       game_state.coins << coin
 
       @last_coin_spawn = game_state.distance
