@@ -22,22 +22,22 @@ def defaults args
 
   # Lane configuration (world coordinates)
   args.state.lane_width ||= 200
-  args.state.lanes ||= [-200, 0, 200]  # X positions for 3 lanes (centered at 0)
-  
+  args.state.lanes ||= [-800, -600, -400, -200, 0, 200, 400, 600, 800]  # X positions for 9 lanes (centered at 0)
+
   # Game state
   args.state.game_over ||= false
   args.state.score ||= 0
   args.state.distance ||= 0
-  
+
   # Player initialization (world coordinates)
   args.state.player ||= {
-    x: args.state.lanes[1],  # Start in middle lane (world x)
+    x: args.state.lanes[4],  # Start in middle lane (world x) - lane 4 is center of 9 lanes
     y: 0,  # World Y position (depth)
     w: 60,  # Base width
     h: 80,  # Base height
-    lane_index: 1,
+    lane_index: 4,
     speed: 8.0,
-    target_lane: 1,
+    target_lane: 4,
     color: { r: 100, g: 200, b: 255 }
   }
   
@@ -117,16 +117,16 @@ end
 
 def input args
   return if args.state.game_over
-  
+
   player = args.state.player
-  
+
   # Handle lane switching with arrow keys or A/D
   if args.inputs.keyboard.key_down.left || args.inputs.keyboard.key_down.a
     player.target_lane = [player.target_lane - 1, 0].max
   elsif args.inputs.keyboard.key_down.right || args.inputs.keyboard.key_down.d
-    player.target_lane = [player.target_lane + 1, 2].min
+    player.target_lane = [player.target_lane + 1, 8].min  # 8 is max index for 9 lanes (0-8)
   end
-  
+
   # Handle restart
   if args.state.game_over && args.inputs.keyboard.key_down.r
     reset_game args
@@ -187,16 +187,34 @@ def calc args
   args.state.coins.reject! { |coin| coin.y < -100 }
 
   # Check collisions with obstacles (in world coordinates)
-  # Collision happens when objects are at similar depth and same lane
+  # Collision happens when objects are at similar depth and player is within obstacle's lane range
   collision_depth_threshold = 80
-  collision_lane_threshold = 80
 
   args.state.obstacles.each do |obs|
     # Check if obstacle is at player's depth
     depth_diff = (obs.y - player.y).abs
-    lane_diff = (obs.x - player.x).abs
 
-    if depth_diff < collision_depth_threshold && lane_diff < collision_lane_threshold
+    # For multi-lane obstacles, check if player's lane is within the obstacle's lane range
+    player_in_obstacle_lane = false
+
+    # Check if player's lane index falls within the obstacle's lane span
+    if player.lane_index >= obs.lane_index && player.lane_index < (obs.lane_index + obs.lane_span)
+      player_in_obstacle_lane = true
+    end
+
+    # Alternative check using world X coordinates for more precise collision
+    # Calculate the obstacle's left and right edges in world coordinates
+    obstacle_half_width = obs.w / 2.0
+    obstacle_left = obs.x - obstacle_half_width
+    obstacle_right = obs.x + obstacle_half_width
+    player_half_width = player.w / 2.0
+    player_left = player.x - player_half_width
+    player_right = player.x + player_half_width
+
+    # Check if player overlaps with obstacle horizontally
+    horizontal_overlap = (player_right > obstacle_left) && (player_left < obstacle_right)
+
+    if depth_diff < collision_depth_threshold && horizontal_overlap
       player.speed -= args.state.obstacle_speed_penalty
       player.speed = [player.speed, 0].max
       obs.hit = true
@@ -207,9 +225,18 @@ def calc args
   # Check collisions with coins (in world coordinates)
   args.state.coins.each do |coin|
     depth_diff = (coin.y - player.y).abs
-    lane_diff = (coin.x - player.x).abs
 
-    if depth_diff < collision_depth_threshold && lane_diff < collision_lane_threshold
+    # Check horizontal overlap with coin
+    coin_half_width = coin.w / 2.0
+    coin_left = coin.x - coin_half_width
+    coin_right = coin.x + coin_half_width
+    player_half_width = player.w / 2.0
+    player_left = player.x - player_half_width
+    player_right = player.x + player_half_width
+
+    horizontal_overlap = (player_right > coin_left) && (player_left < coin_right)
+
+    if depth_diff < collision_depth_threshold && horizontal_overlap
       player.speed += args.state.coin_speed_boost
       args.state.score += 10
       coin.collected = true
@@ -317,15 +344,15 @@ def draw_road_surface args
   # Draw road as a large rectangle approximating the trapezoid
   # This renders in the background using solids
 
-  # Near position (bottom of screen)
+  # Near position (bottom of screen) - expanded for 9 lanes
   near_depth = 0
-  near_left = world_to_screen(args, -300, near_depth)
-  near_right = world_to_screen(args, 300, near_depth)
+  near_left = world_to_screen(args, -1000, near_depth)  # Extended left edge
+  near_right = world_to_screen(args, 1000, near_depth)  # Extended right edge
 
   # Far position (vanishing point)
   far_depth = args.state.world_depth
-  far_left = world_to_screen(args, -300, far_depth)
-  far_right = world_to_screen(args, 300, far_depth)
+  far_left = world_to_screen(args, -1000, far_depth)
+  far_right = world_to_screen(args, 1000, far_depth)
 
   # Draw road as a simple rectangle covering the play area
   # This ensures it's behind everything else
@@ -347,15 +374,15 @@ end
 
 def draw_road_edges args
   # Draw road edges as lines (rendered after game objects for visual clarity)
-  # Near position (bottom of screen)
+  # Near position (bottom of screen) - expanded for 9 lanes
   near_depth = 0
-  near_left = world_to_screen(args, -300, near_depth)
-  near_right = world_to_screen(args, 300, near_depth)
+  near_left = world_to_screen(args, -1000, near_depth)
+  near_right = world_to_screen(args, 1000, near_depth)
 
   # Far position (vanishing point)
   far_depth = args.state.world_depth
-  far_left = world_to_screen(args, -300, far_depth)
-  far_right = world_to_screen(args, 300, far_depth)
+  far_left = world_to_screen(args, -1000, far_depth)
+  far_right = world_to_screen(args, 1000, far_depth)
 
   # Left edge
   args.outputs.lines << {
@@ -383,9 +410,8 @@ def draw_road_edges args
 end
 
 def draw_lane_dividers args
-  # Draw lane dividers between the 3 lanes
-  # Left divider (between lane 0 and 1)
-  # Right divider (between lane 1 and 2)
+  # Draw lane dividers between the 9 lanes (8 dividers total)
+  # Dividers are positioned between each pair of adjacent lanes
 
   divider_spacing = 60  # World space between divider segments
   divider_length = 40   # World space length of each segment
@@ -393,43 +419,37 @@ def draw_lane_dividers args
   # Animate dividers moving toward player
   offset = args.state.distance.to_i % divider_spacing
 
+  # Calculate divider positions (midpoint between each pair of lanes)
+  # For 9 lanes at [-800, -600, -400, -200, 0, 200, 400, 600, 800]
+  # Dividers are at [-700, -500, -300, -100, 100, 300, 500, 700]
+  divider_positions = []
+  (args.state.lanes.length - 1).times do |i|
+    divider_x = (args.state.lanes[i] + args.state.lanes[i + 1]) / 2.0
+    divider_positions << divider_x
+  end
+
   # Draw dividers at multiple depths
   world_y = offset
   while world_y < args.state.world_depth
-    # Left lane divider
-    left_divider_x = -100  # Between lanes 0 and 1
-    left_start = world_to_screen(args, left_divider_x, world_y)
-    left_end = world_to_screen(args, left_divider_x, world_y + divider_length)
-
     scale = perspective_scale(args, world_y)
     divider_width = 8 * scale
 
-    args.outputs.solids << {
-      x: left_start.x - divider_width / 2,
-      y: left_start.y,
-      w: divider_width,
-      h: left_end.y - left_start.y,
-      r: 200,
-      g: 200,
-      b: 100,
-      a: 200
-    }
+    # Draw all 8 lane dividers
+    divider_positions.each do |divider_x|
+      divider_start = world_to_screen(args, divider_x, world_y)
+      divider_end = world_to_screen(args, divider_x, world_y + divider_length)
 
-    # Right lane divider
-    right_divider_x = 100  # Between lanes 1 and 2
-    right_start = world_to_screen(args, right_divider_x, world_y)
-    right_end = world_to_screen(args, right_divider_x, world_y + divider_length)
-
-    args.outputs.solids << {
-      x: right_start.x - divider_width / 2,
-      y: right_start.y,
-      w: divider_width,
-      h: right_end.y - right_start.y,
-      r: 200,
-      g: 200,
-      b: 100,
-      a: 200
-    }
+      args.outputs.solids << {
+        x: divider_start.x - divider_width / 2,
+        y: divider_start.y,
+        w: divider_width,
+        h: divider_end.y - divider_start.y,
+        r: 200,
+        g: 200,
+        b: 100,
+        a: 200
+      }
+    end
 
     world_y += divider_spacing
   end
@@ -558,24 +578,44 @@ def draw_game_over args
 end
 
 def spawn_obstacle args
-  # Randomly choose a lane
-  lane_index = rand(3)
+  # Randomly choose a starting lane (0-8 for 9 lanes)
+  lane_index = rand(9)
+
+  # Randomly choose how many lanes this obstacle spans (1, 2, or 3 lanes)
+  lane_span = [1, 1, 1, 2, 2, 3].sample  # Weighted: more single-lane, fewer triple-lane
+
+  # Ensure obstacle doesn't go beyond the rightmost lane
+  if lane_index + lane_span > 9
+    lane_index = 9 - lane_span
+  end
+
+  # Calculate obstacle position (centered on the spanned lanes)
+  # For multi-lane obstacles, position at the center of the spanned lanes
+  start_lane_x = args.state.lanes[lane_index]
+  end_lane_x = args.state.lanes[lane_index + lane_span - 1]
+  obstacle_x = (start_lane_x + end_lane_x) / 2.0
+
+  # Calculate obstacle width based on lane span
+  # Width should cover all spanned lanes plus some overlap
+  base_width = 80
+  obstacle_width = (lane_span * args.state.lane_width) - 40  # Slight gap on edges
 
   # Spawn at far depth (world coordinates)
   args.state.obstacles << {
-    x: args.state.lanes[lane_index],  # World X position
+    x: obstacle_x,  # World X position (center of spanned lanes)
     y: args.state.world_depth,  # Spawn at far depth
-    w: 80,
+    w: obstacle_width,
     h: 120,
-    lane_index: lane_index,
+    lane_index: lane_index,  # Starting lane
+    lane_span: lane_span,  # How many lanes it spans
     hit: false,
     color: { r: 200, g: 50, b: 50 }
   }
 end
 
 def spawn_coin args
-  # Randomly choose a lane
-  lane_index = rand(3)
+  # Randomly choose a lane (0-8 for 9 lanes)
+  lane_index = rand(9)
 
   # Spawn at far depth (world coordinates)
   args.state.coins << {
@@ -599,10 +639,10 @@ def reset_game args
   args.state.coin_spawn_timer = 0
 
   # Reset player (world coordinates)
-  args.state.player.x = args.state.lanes[1]  # Middle lane
+  args.state.player.x = args.state.lanes[4]  # Middle lane (lane 4 is center of 9 lanes)
   args.state.player.y = 0  # At player's depth
-  args.state.player.lane_index = 1
-  args.state.player.target_lane = 1
+  args.state.player.lane_index = 4
+  args.state.player.target_lane = 4
   args.state.player.speed = 8.0
 end
 
