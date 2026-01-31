@@ -116,6 +116,13 @@ def world_rect_to_screen args, world_x, world_y, world_w, world_h
 end
 
 def input args
+  # Handle restart (check this BEFORE early return)
+  if args.state.game_over && args.inputs.keyboard.key_down.r
+    reset_game args
+    return
+  end
+
+  # Don't process game controls if game is over
   return if args.state.game_over
 
   player = args.state.player
@@ -125,11 +132,6 @@ def input args
     player.target_lane = [player.target_lane - 1, 0].max
   elsif args.inputs.keyboard.key_down.right || args.inputs.keyboard.key_down.d
     player.target_lane = [player.target_lane + 1, 8].min  # 8 is max index for 9 lanes (0-8)
-  end
-
-  # Handle restart
-  if args.state.game_over && args.inputs.keyboard.key_down.r
-    reset_game args
   end
 end
 
