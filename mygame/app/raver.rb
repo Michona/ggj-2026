@@ -37,11 +37,11 @@ class Raver
 
     sx = $spring_x.spring(@target.x, @x, @velocity_x, 1)
     @x = sx.d
-    @velocity_x = sx.v / 2
+    @velocity_x = sx.v
 
     sy = $spring_y.spring(@target.y + 100, @y, @velocity_y, 1)
     @y = sy.d
-    @velocity_y = sy.v / 2
+    @velocity_y = sy.v
   end
 
   def follow(target:)
