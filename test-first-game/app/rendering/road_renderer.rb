@@ -118,37 +118,58 @@ class RoadRenderer
   end
 
   def draw_road_edges(args)
-    # Draw left edge
+    # Draw road edges as borders along the road trapezoid
+    # Draw them as part of the road surface using horizontal line segments
+    # This makes them follow the perspective correctly
+
+    # Get the four corners of the road trapezoid
     near_left = @camera.world_to_screen(Config::ROAD_MIN_X, 0)
-    far_left = @camera.world_to_screen(Config::ROAD_MIN_X, @camera.world_depth)
-
-    # Use primitives instead of lines to control render order
-    args.outputs.primitives << {
-      x: near_left[:x],
-      y: near_left[:y],
-      x2: far_left[:x],
-      y2: far_left[:y],
-      r: Config::ROAD_EDGE_COLOR[:r],
-      g: Config::ROAD_EDGE_COLOR[:g],
-      b: Config::ROAD_EDGE_COLOR[:b],
-      a: 255
-    }.line!
-
-    # Draw right edge
     near_right = @camera.world_to_screen(Config::ROAD_MAX_X, 0)
+    far_left = @camera.world_to_screen(Config::ROAD_MIN_X, @camera.world_depth)
     far_right = @camera.world_to_screen(Config::ROAD_MAX_X, @camera.world_depth)
 
-    # Use primitives instead of lines to control render order
-    args.outputs.primitives << {
-      x: near_right[:x],
-      y: near_right[:y],
-      x2: far_right[:x],
-      y2: far_right[:y],
-      r: Config::ROAD_EDGE_COLOR[:r],
-      g: Config::ROAD_EDGE_COLOR[:g],
-      b: Config::ROAD_EDGE_COLOR[:b],
-      a: 255
-    }.line!
+    # Calculate total height of road on screen
+    road_height = far_left[:y] - near_left[:y]
+
+    # Draw edges as thick lines along the left and right sides
+    # Use many small segments to follow the perspective curve
+    num_segments = (road_height / 2).ceil
+    edge_thickness = 3
+
+    num_segments.times do |i|
+      t = i.to_f / num_segments
+
+      # Calculate Y position
+      y = near_left[:y] + (far_left[:y] - near_left[:y]) * t
+
+      # Calculate X positions for left and right edges
+      left_x = near_left[:x] + (far_left[:x] - near_left[:x]) * t
+      right_x = near_right[:x] + (far_right[:x] - near_right[:x]) * t
+
+      # Draw left edge segment
+      args.outputs.solids << {
+        x: left_x - edge_thickness,
+        y: y,
+        w: edge_thickness,
+        h: 3,
+        r: Config::ROAD_EDGE_COLOR[:r],
+        g: Config::ROAD_EDGE_COLOR[:g],
+        b: Config::ROAD_EDGE_COLOR[:b],
+        a: 255
+      }
+
+      # Draw right edge segment
+      args.outputs.solids << {
+        x: right_x,
+        y: y,
+        w: edge_thickness,
+        h: 3,
+        r: Config::ROAD_EDGE_COLOR[:r],
+        g: Config::ROAD_EDGE_COLOR[:g],
+        b: Config::ROAD_EDGE_COLOR[:b],
+        a: 255
+      }
+    end
   end
 end
 
