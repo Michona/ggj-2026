@@ -22,21 +22,24 @@ class RoadRenderer
     far_left = @camera.world_to_screen(Config::LANES.first - Config::LANE_WIDTH / 2, @camera.world_depth)
     far_right = @camera.world_to_screen(Config::LANES.last + Config::LANE_WIDTH / 2, @camera.world_depth)
 
-    # Draw road as a solid trapezoid (approximated with a large rectangle)
-    # For simplicity, we'll draw it as a filled polygon using multiple horizontal lines
-    num_lines = 100
+    # Calculate total height of road on screen
+    road_height = far_left[:y] - near_left[:y]
+
+    # Draw road as a solid trapezoid using horizontal lines
+    # Use enough lines to fill completely without gaps
+    num_lines = (road_height / 2).ceil  # One line every 2 pixels
     num_lines.times do |i|
       t = i.to_f / num_lines
-      
-      y = near_left.y + (far_left.y - near_left.y) * t
-      left_x = near_left.x + (far_left.x - near_left.x) * t
-      right_x = near_right.x + (far_right.x - near_right.x) * t
-      
+
+      y = near_left[:y] + (far_left[:y] - near_left[:y]) * t
+      left_x = near_left[:x] + (far_left[:x] - near_left[:x]) * t
+      right_x = near_right[:x] + (far_right[:x] - near_right[:x]) * t
+
       args.outputs.solids << {
         x: left_x,
         y: y,
         w: right_x - left_x,
-        h: 5,
+        h: 3,  # Slightly overlapping to ensure no gaps
         r: Config::ROAD_COLOR[:r],
         g: Config::ROAD_COLOR[:g],
         b: Config::ROAD_COLOR[:b]

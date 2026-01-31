@@ -1,42 +1,36 @@
 # Player entity class
 class Player
-  attr_accessor :x, :y, :w, :h, :speed, :target_lane, :current_lane
+  attr_accessor :x, :y, :w, :h, :speed, :horizontal_velocity
   attr_reader :color
 
   def initialize
-    @current_lane = Config::PLAYER_START_LANE
-    @target_lane = Config::PLAYER_START_LANE
-    @x = Config::LANES[@current_lane]
+    @x = Config::PLAYER_START_X
     @y = Config::PLAYER_Y_POSITION
     @w = Config::PLAYER_WIDTH
     @h = Config::PLAYER_HEIGHT
     @speed = Config::PLAYER_START_SPEED
+    @horizontal_velocity = 0  # Current horizontal movement speed
     @color = Config::PLAYER_COLOR
   end
 
   def update
-    # Smoothly move toward target lane
-    target_x = Config::LANES[@target_lane]
-    if @x < target_x
-      @x += Config::PLAYER_LANE_SWITCH_SPEED
-      @x = target_x if @x > target_x
-    elsif @x > target_x
-      @x -= Config::PLAYER_LANE_SWITCH_SPEED
-      @x = target_x if @x < target_x
-    end
+    # Apply horizontal velocity
+    @x += @horizontal_velocity
 
-    # Update current lane when we reach target
-    if @x == target_x
-      @current_lane = @target_lane
-    end
+    # Clamp to road boundaries
+    @x = [[@x, Config::PLAYER_MIN_X].max, Config::PLAYER_MAX_X].min
   end
 
   def move_left
-    @target_lane = [@target_lane - 1, 0].max
+    @horizontal_velocity = -Config::PLAYER_HORIZONTAL_SPEED
   end
 
   def move_right
-    @target_lane = [@target_lane + 1, Config::NUM_LANES - 1].min
+    @horizontal_velocity = Config::PLAYER_HORIZONTAL_SPEED
+  end
+
+  def stop_horizontal_movement
+    @horizontal_velocity = 0
   end
 
   def hit_obstacle
@@ -53,11 +47,10 @@ class Player
   end
 
   def reset
-    @current_lane = Config::PLAYER_START_LANE
-    @target_lane = Config::PLAYER_START_LANE
-    @x = Config::LANES[@current_lane]
+    @x = Config::PLAYER_START_X
     @y = Config::PLAYER_Y_POSITION
     @speed = Config::PLAYER_START_SPEED
+    @horizontal_velocity = 0
   end
 
   def bounds

@@ -12,11 +12,15 @@ class InputHandler
 
     player = game_state.player
 
-    # Handle lane switching with arrow keys or A/D
-    if args.inputs.keyboard.key_down.left || args.inputs.keyboard.key_down.a
+    # Handle continuous horizontal movement with arrow keys or A/D
+    # Check if keys are held down (not just pressed)
+    if args.inputs.keyboard.left || args.inputs.keyboard.a
       player.move_left
-    elsif args.inputs.keyboard.key_down.right || args.inputs.keyboard.key_down.d
+    elsif args.inputs.keyboard.right || args.inputs.keyboard.d
       player.move_right
+    else
+      # Stop moving when no keys are pressed
+      player.stop_horizontal_movement
     end
   end
 end

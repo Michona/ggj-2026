@@ -17,12 +17,14 @@ module Config
   NUM_LANES = LANES.length
 
   # Player settings
-  PLAYER_START_LANE = 4  # Center lane (0-indexed)
+  PLAYER_START_X = 0  # Center of road (world coordinates)
   PLAYER_START_SPEED = 8.0
   PLAYER_WIDTH = 40
   PLAYER_HEIGHT = 60
   PLAYER_Y_POSITION = 0  # Player is always at the front
-  PLAYER_LANE_SWITCH_SPEED = 15  # How fast player moves between lanes
+  PLAYER_HORIZONTAL_SPEED = 10  # How fast player moves left/right
+  PLAYER_MIN_X = -450  # Left boundary (slightly beyond leftmost lane)
+  PLAYER_MAX_X = 450   # Right boundary (slightly beyond rightmost lane)
   PLAYER_COLOR = { r: 50, g: 150, b: 255 }  # Blue
 
   # Obstacle settings
