@@ -13,16 +13,19 @@ def defaults args
   args.state.screen_width ||= 1280
   args.state.screen_height ||= 720
 
-  # Isometric/Perspective settings
-  args.state.vanishing_point_x ||= 640  # Center of screen
-  args.state.vanishing_point_y ||= 600  # High up on screen
-  args.state.perspective_strength ||= 0.7  # How much perspective scaling (0-1)
+  # Isometric/Perspective settings - OutRun style
+  # OutRun has aggressive perspective with horizon at ~72% screen height
+  args.state.vanishing_point_x ||= 640  # Center of screen (horizontal)
+  args.state.vanishing_point_y ||= 520  # Horizon at ~72% screen height (was 320) - road extends higher
+  args.state.perspective_strength ||= 0.35  # Aggressive scaling (was 0.7) - distant objects much smaller
   args.state.world_depth ||= 1000  # Maximum depth in world coordinates
-  args.state.camera_y_offset ||= 150  # Player appears lower on screen
+  args.state.camera_y_offset ||= 50  # Player very low on screen (was 150) - low camera angle
 
   # Lane configuration (world coordinates)
-  args.state.lane_width ||= 200
-  args.state.lanes ||= [-800, -600, -400, -200, 0, 200, 400, 600, 800]  # X positions for 9 lanes (centered at 0)
+  # Reduced from 200 to 100 spacing to fit all 9 lanes on screen (1280x720)
+  # Lanes now span -400 to +400 (800 units) which fits within screen bounds
+  args.state.lane_width ||= 100
+  args.state.lanes ||= [-400, -300, -200, -100, 0, 100, 200, 300, 400]  # X positions for 9 lanes (centered at 0)
 
   # Game state
   args.state.game_over ||= false
@@ -33,8 +36,8 @@ def defaults args
   args.state.player ||= {
     x: args.state.lanes[4],  # Start in middle lane (world x) - lane 4 is center of 9 lanes
     y: 0,  # World Y position (depth)
-    w: 60,  # Base width
-    h: 80,  # Base height
+    w: 50,  # Base width (reduced to match narrower lanes)
+    h: 70,  # Base height (reduced to match narrower lanes)
     lane_index: 4,
     speed: 8.0,
     target_lane: 4,
@@ -96,22 +99,33 @@ def world_to_screen args, world_x, world_y
 end
 
 # Convert world rectangle to screen rectangle with perspective
+# Objects span depth to create proper 3D appearance (like lane dividers)
 def world_rect_to_screen args, world_x, world_y, world_w, world_h
-  screen_pos = world_to_screen(args, world_x, world_y)
+  # Get screen position for the base of the object (at world_y)
+  screen_base = world_to_screen(args, world_x, world_y)
 
-  scaled_w = world_w * screen_pos.scale
-  scaled_h = world_h * screen_pos.scale
+  # Get screen position for the top of the object (at world_y + world_h)
+  # This makes objects span depth, creating a trapezoid effect
+  screen_top = world_to_screen(args, world_x, world_y + world_h)
 
-  # Center the object on its position
-  screen_x = screen_pos.x - (scaled_w / 2)
-  screen_y = screen_pos.y
+  # Calculate width at the base (scaled by perspective)
+  scaled_w = world_w * screen_base.scale
+
+  # Center the object horizontally on its position
+  screen_x = screen_base.x - (scaled_w / 2)
+
+  # Y position is at the base
+  screen_y = screen_base.y
+
+  # Height spans from base to top in screen space
+  screen_h = screen_top.y - screen_base.y
 
   return {
     x: screen_x,
     y: screen_y,
     w: scaled_w,
-    h: scaled_h,
-    scale: screen_pos.scale
+    h: screen_h,
+    scale: screen_base.scale
   }
 end
 
@@ -346,15 +360,15 @@ def draw_road_surface args
   # Draw road as a large rectangle approximating the trapezoid
   # This renders in the background using solids
 
-  # Near position (bottom of screen) - expanded for 9 lanes
+  # Near position (bottom of screen) - adjusted for 9 lanes spanning -400 to +400
   near_depth = 0
-  near_left = world_to_screen(args, -1000, near_depth)  # Extended left edge
-  near_right = world_to_screen(args, 1000, near_depth)  # Extended right edge
+  near_left = world_to_screen(args, -500, near_depth)  # Slightly beyond leftmost lane
+  near_right = world_to_screen(args, 500, near_depth)  # Slightly beyond rightmost lane
 
   # Far position (vanishing point)
   far_depth = args.state.world_depth
-  far_left = world_to_screen(args, -1000, far_depth)
-  far_right = world_to_screen(args, 1000, far_depth)
+  far_left = world_to_screen(args, -500, far_depth)
+  far_right = world_to_screen(args, 500, far_depth)
 
   # Draw road as a simple rectangle covering the play area
   # This ensures it's behind everything else
@@ -376,15 +390,15 @@ end
 
 def draw_road_edges args
   # Draw road edges as lines (rendered after game objects for visual clarity)
-  # Near position (bottom of screen) - expanded for 9 lanes
+  # Near position (bottom of screen) - adjusted for 9 lanes spanning -400 to +400
   near_depth = 0
-  near_left = world_to_screen(args, -1000, near_depth)
-  near_right = world_to_screen(args, 1000, near_depth)
+  near_left = world_to_screen(args, -500, near_depth)
+  near_right = world_to_screen(args, 500, near_depth)
 
   # Far position (vanishing point)
   far_depth = args.state.world_depth
-  far_left = world_to_screen(args, -1000, far_depth)
-  far_right = world_to_screen(args, 1000, far_depth)
+  far_left = world_to_screen(args, -500, far_depth)
+  far_right = world_to_screen(args, 500, far_depth)
 
   # Left edge
   args.outputs.lines << {
@@ -419,11 +433,12 @@ def draw_lane_dividers args
   divider_length = 40   # World space length of each segment
 
   # Animate dividers moving toward player
+  # As distance increases, offset increases, which we subtract to move dividers forward
   offset = args.state.distance.to_i % divider_spacing
 
   # Calculate divider positions (midpoint between each pair of lanes)
-  # For 9 lanes at [-800, -600, -400, -200, 0, 200, 400, 600, 800]
-  # Dividers are at [-700, -500, -300, -100, 100, 300, 500, 700]
+  # For 9 lanes at [-400, -300, -200, -100, 0, 100, 200, 300, 400]
+  # Dividers are at [-350, -250, -150, -50, 50, 150, 250, 350]
   divider_positions = []
   (args.state.lanes.length - 1).times do |i|
     divider_x = (args.state.lanes[i] + args.state.lanes[i + 1]) / 2.0
@@ -431,26 +446,63 @@ def draw_lane_dividers args
   end
 
   # Draw dividers at multiple depths
-  world_y = offset
+  # Start from negative offset so dividers move toward player as distance increases
+  world_y = -offset
   while world_y < args.state.world_depth
-    scale = perspective_scale(args, world_y)
-    divider_width = 8 * scale
+    # Calculate scale at both ends of the divider for proper perspective
+    scale_start = perspective_scale(args, world_y)
+    scale_end = perspective_scale(args, world_y + divider_length)
 
-    # Draw all 8 lane dividers
+    divider_width_start = 8 * scale_start  # Width at near end (closer to player)
+    divider_width_end = 8 * scale_end      # Width at far end (toward vanishing point)
+
+    # Draw all 8 lane dividers as trapezoids that taper toward vanishing point
     divider_positions.each do |divider_x|
+      # Get screen positions for near and far ends of the divider
       divider_start = world_to_screen(args, divider_x, world_y)
       divider_end = world_to_screen(args, divider_x, world_y + divider_length)
 
-      args.outputs.solids << {
-        x: divider_start.x - divider_width / 2,
-        y: divider_start.y,
-        w: divider_width,
-        h: divider_end.y - divider_start.y,
-        r: 200,
-        g: 200,
-        b: 100,
-        a: 200
-      }
+      # Render as a trapezoid using borders (4 lines forming a quad)
+      # This creates proper perspective convergence toward the vanishing point
+
+      # Calculate the four corners of the trapezoid
+      # Bottom (near) edge - wider
+      bottom_left_x = divider_start.x - divider_width_start / 2
+      bottom_right_x = divider_start.x + divider_width_start / 2
+      bottom_y = divider_start.y
+
+      # Top (far) edge - narrower
+      top_left_x = divider_end.x - divider_width_end / 2
+      top_right_x = divider_end.x + divider_width_end / 2
+      top_y = divider_end.y
+
+      # Draw the trapezoid as a filled quad using primitives
+      # We'll use a simple approach: draw multiple horizontal lines to fill the trapezoid
+      num_fill_lines = [((top_y - bottom_y).abs / 2).to_i, 1].max
+
+      num_fill_lines.times do |i|
+        t = i.to_f / num_fill_lines  # Interpolation factor (0 to 1)
+
+        # Interpolate Y position
+        line_y = bottom_y + (top_y - bottom_y) * t
+
+        # Interpolate left and right X positions (creates taper)
+        line_left_x = bottom_left_x + (top_left_x - bottom_left_x) * t
+        line_right_x = bottom_right_x + (top_right_x - bottom_right_x) * t
+        line_width = line_right_x - line_left_x
+
+        # Draw horizontal line segment
+        args.outputs.solids << {
+          x: line_left_x,
+          y: line_y,
+          w: line_width,
+          h: 2,  # Small height for each fill line
+          r: 200,
+          g: 200,
+          b: 100,
+          a: 200
+        }
+      end
     end
 
     world_y += divider_spacing
