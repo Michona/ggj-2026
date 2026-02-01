@@ -20,19 +20,19 @@ def setup
 end
 
 def tick_game(args)
-  if args.inputs.keyboard.space && !$raver_group.is_flying
+  if (args.inputs.keyboard.space || args.state.controller.a) && !$raver_group.is_flying
     $raver_group.jump
   end
 
-  if args.inputs.keyboard.a
+  if args.inputs.left
     $raver_group.move_left
   end
 
-  if args.inputs.keyboard.d
+  if args.inputs.right
     $raver_group.move_right
   end
 
-  if args.inputs.keyboard.j
+  if args.inputs.keyboard.j || args.state.controller.b
     $lone_raver_spawner.lone_ravers.each do |lone_raver|
       if lone_raver.can_be_snatched
         $raver_group.add_new_raver lone_raver.create_raver
@@ -41,7 +41,7 @@ def tick_game(args)
     end
   end
 
-  if args.inputs.keyboard.k
+  if args.inputs.keyboard.k || args.state.controller.x
     $window_spawner.windows.each do |window|
       if window.can_be_opened
         window.types.each do |type|
@@ -109,7 +109,7 @@ def tick_game(args)
   args.outputs.labels << {
     x: 50,
     y: 650,
-    text: "Windows: #{$score.windows_missed} / #{$score.max_windows}",
+    text: "Windows: #{$score.windows_missed} of #{$score.max_windows}",
     font: "fonts/font.otf"
 
   }
@@ -165,6 +165,10 @@ def tick(args)
   if Kernel.tick_count == 0
     Numeric.srand(1769947109)
 
+    unless GTK.platform? :web
+      GTK.set_window_fullscreen true
+    end
+
     mk_music(args)
     $scene = :scene_loading
     $rave = Rave.new
@@ -175,7 +179,9 @@ def tick(args)
     end
   end
 
-  if args.inputs.keyboard.enter && ($scene == :scene_loading || $scene == :scene_end)
+  args.state.controller ||= args.inputs.controller_one
+
+  if (args.inputs.keyboard.enter || args.state.controller.a) && ($scene == :scene_loading || $scene == :scene_end)
     $scene = :scene_game
     setup
   end
