@@ -1,4 +1,3 @@
-
 SCREEN_HEIGHT = 720
 SCREEN_WIDTH = 1280
 
@@ -6,22 +5,20 @@ MID_HEIGHT = SCREEN_HEIGHT / 2
 MID_WIDTH = SCREEN_WIDTH / 2
 
 def mk_music(args)
-  if args.state.tick_count == 1
-    # music = "sounds/gamejam-dnb.wav"
-    music = "sounds/LOFI-GAMEJAM-1.wav"
-    args.audio[:music] = { input: music, looping: true, gain: 0.0}
-    args.state.music_muted ||= true
-  end
+  # music = "sounds/gamejam-dnb.wav"
+  music = "sounds/LOFI-GAMEJAM-1.wav"
+  args.audio[:music] = { input: music, looping: true, gain: 1.0 }
+  # args.state.music_muted ||= true
 
-  if args.inputs.mouse.click
-    if args.state.music_muted
-      args.audio[:music].gain = 1.0
-      args.state.music_muted = false
-    else
-      args.audio[:music].gain = 0.0
-      args.state.music_muted = true
-    end
-  end
+  # if args.inputs.mouse.click
+  #   if args.state.music_muted
+  #     args.audio[:music].gain = 0.0
+  #     args.state.music_muted = true
+  #   else
+  #     args.audio[:music].gain = 1.0
+  #     args.state.music_muted = false
+  #   end
+  # end
 end
 
 def mk_road(args)
@@ -34,9 +31,9 @@ def mk_road(args)
   offset_bottom = ((road_width_bottom) / 2)
   offset_top = ((road_width_top) / 2)
 
-  args.outputs.lines << {x: MID_WIDTH - offset_bottom, y: road_bottom, x2: MID_WIDTH - offset_top, y2: road_height}
-  args.outputs.lines << {x: MID_WIDTH + offset_bottom, y: road_bottom, x2: MID_WIDTH + offset_top, y2: road_height}
-  args.outputs.lines << {x: 0, y: road_height, x2: SCREEN_WIDTH, y2: road_height}
+  args.outputs.lines << { x: MID_WIDTH - offset_bottom, y: road_bottom, x2: MID_WIDTH - offset_top, y2: road_height }
+  args.outputs.lines << { x: MID_WIDTH + offset_bottom, y: road_bottom, x2: MID_WIDTH + offset_top, y2: road_height }
+  args.outputs.lines << { x: 0, y: road_height, x2: SCREEN_WIDTH, y2: road_height }
 end
 
 def round_towards_sign(n)
@@ -48,12 +45,51 @@ def round_towards_sign(n)
 end
 
 # AKA the jiggle!
-class Spring
-  attr_accessor :m, :dt, :dt2, :cs, :cd, :s_max, :c_max
+# class Spring
+#   attr_accessor :m, :dt, :dt2, :cs, :cd, :s_max, :c_max
+#
+#   def initialize(cs, cd)
+#     @cs = cs # stable stiffness coefficient 0 <= Cs <= 1
+#     @cd = cd # stable damping coefficient 0 <= Cd <= 1
+#
+#     @dt = 1.0 / 60.0 # delta time
+#     @dt2 = @dt ** 2
+#     @s_max = 1.0 / @dt2 # stiffness coefficient
+#     @c_max = 1.0 / @dt # damping coefficient
+#   end
+#
+#   def spring(d0, d1, v1, i)
+#     dx = (d1 - d0).to_f
+#     # uncomment to change direction of height dependant elasticity & dampening (i think)
+#     # i = 1.0 / i
+#     i_cs = 1.0
+#     # uncomment to enable height-dependant elasticity
+#     # i_cs = 1.0 - (0.6 / (1.0 + i))
+#     i_cd = 1.0
+#     # uncomment to enable height-dependant dampening
+#     # i_cd = 1.0 - (0.1 / (1.0 + i))
+#     f = -(i_cs * @cs * @s_max * dx) - (i_cd * @cd * @c_max * v1)
+#     # f = f * temp
+#     a = f
+#
+#     v = v1 + a * @dt
+#     d = d1 + v * @dt
+#
+#     {
+#       d: d,
+#       v: v
+#     }
+#   end
+# end
 
-  def initialize(cs, cd)
-    @cs = cs # stable stiffness coefficient 0 <= Cs <= 1
-    @cd = cd # stable damping coefficient 0 <= Cd <= 1
+class Spring
+  attr_accessor :m, :dt, :dt2, :cs_upper, :cs_lower, :cd_upper, :cd_lower, :s_max, :c_max
+
+  def initialize(cs_upper, cs_lower, cd_upper, cd_lower)
+    @cs_upper = cs_upper # stable stiffness coefficient 0 <= Cs <= 1
+    @cs_lower = cs_lower
+    @cd_upper = cd_upper # stable damping coefficient 0 <= Cd <= 1
+    @cd_lower = cd_lower
 
     @dt = 1.0 / 60.0 # delta time
     @dt2 = @dt ** 2
@@ -63,16 +99,14 @@ class Spring
 
   def spring(d0, d1, v1, i)
     dx = (d1 - d0).to_f
-    # uncomment to change direction of height dependant elasticity & dampening (i think)
-    # i = 1.0 / i
-    i_cs = 1.0
-    # uncomment to enable height-dependant elasticity
-    # i_cs = 1.0 - (0.6 / (1.0 + i))
-    i_cd = 1.0
-    # uncomment to enable height-dependant dampening
-    # i_cd = 1.0 - (0.1 / (1.0 + i))
-    f = -(i_cs * @cs * @s_max * dx) - (i_cd * @cd * @c_max * v1)
-    # f = f * temp
+
+    # cs = @cs_lower + ((@cs_upper - @cs_lower) / (1.0 + i))
+    # cd = @cd_lower + ((@cd_upper - @cd_lower) / (1.0 + i))
+    # TODO:
+    cs = 0.3
+    cd = 0.6
+
+    f = -(cs * @s_max * dx) - (cd * @c_max * v1)
     a = f
 
     v = v1 + a * @dt
@@ -87,6 +121,7 @@ end
 
 class Player
   attr_accessor :players
+
   def initialize(x, y, cnt, sprite_size)
     @sprite_size = sprite_size
     @players =
@@ -134,7 +169,7 @@ class Player
 
   def tick
     @players.each_cons(2).with_index do |(p0, p1), i|
-      sx = @spring_x.spring(p0.x , p1.x, p1.xv, i.to_f)
+      sx = @spring_x.spring(p0.x, p1.x, p1.xv, i.to_f)
       p1.x = sx.d
       p1.xv = sx.v
 
@@ -151,7 +186,7 @@ end
 #
 
 def laurence_tick(args)
-  args.outputs.labels << {x: 0, y: 0, anchor_x: 0, anchor_y: 0, r: 255, a: 128, text: "frame: #{Kernel.tick_count}", font: '../samples/01_rendering_basics/01_labels/manaspc.ttf', size_enum: 5}
+  args.outputs.labels << { x: 0, y: 0, anchor_x: 0, anchor_y: 0, r: 255, a: 128, text: "frame: #{Kernel.tick_count}", font: '../samples/01_rendering_basics/01_labels/manaspc.ttf', size_enum: 5 }
   mk_music args
   mk_road args
 
@@ -190,12 +225,10 @@ def laurence_tick(args)
     args.state.player.delete_at(0)
   end
 
-
   args.state.player.tick
 
-
   args.state.player.players.each_with_index do |p, i|
-    args.outputs.sprites << {x: p.x, y: p.y, w: sprite_size, h: sprite_size, anchor_x: 0.5, anchor_y: 0.5, path: "sprites/misc/lowrez-ship-#{p.color}.png"}
-    args.outputs.borders << {x: p.x, y: p.y, w: sprite_size, h: sprite_size, anchor_x: 0.5, anchor_y: 0.5}
+    args.outputs.sprites << { x: p.x, y: p.y, w: sprite_size, h: sprite_size, anchor_x: 0.5, anchor_y: 0.5, path: "sprites/misc/lowrez-ship-#{p.color}.png" }
+    args.outputs.borders << { x: p.x, y: p.y, w: sprite_size, h: sprite_size, anchor_x: 0.5, anchor_y: 0.5 }
   end
 end
