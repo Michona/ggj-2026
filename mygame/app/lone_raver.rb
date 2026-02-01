@@ -69,6 +69,13 @@ class LoneRaverSpawner
         @lone_ravers.delete(lone_raver)
       end
     end
+
+    lone_ravers.each do |lone_raver|
+      if lone_raver.can_be_snatched
+        $raver_group.add_new_raver lone_raver.create_raver
+        pick_up(lone_raver)
+      end
+    end
   end
 
   # Picked up by the raver group

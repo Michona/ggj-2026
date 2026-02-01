@@ -32,15 +32,6 @@ def tick_game(args)
     $raver_group.move_right
   end
 
-  if args.inputs.keyboard.j || args.state.controller.b
-    $lone_raver_spawner.lone_ravers.each do |lone_raver|
-      if lone_raver.can_be_snatched
-        $raver_group.add_new_raver lone_raver.create_raver
-        $lone_raver_spawner.pick_up(lone_raver)
-      end
-    end
-  end
-
   if args.inputs.keyboard.k || args.state.controller.x
     $window_spawner.windows.each do |window|
       if window.can_be_opened
@@ -48,6 +39,8 @@ def tick_game(args)
           $raver_group.remove_raver_with_type(type)
         end
         $window_spawner.close_window(window)
+
+        $raver_group.jump
         break
       end
     end
@@ -86,6 +79,10 @@ def tick_game(args)
     args.outputs.sprites << window.indicator_prefabs
   end
 
+  $window_spawner.dying_windows.each do |window|
+    args.outputs.sprites << window.prefab
+  end
+
   $lone_raver_spawner.lone_ravers.each do |lone_raver|
     args.outputs.sprites << lone_raver.cloud_prefab
     args.outputs.sprites << lone_raver.prefab
@@ -102,21 +99,20 @@ def tick_game(args)
   args.outputs.labels << {
     x: 50,
     y: 700,
-    text: "Score: #{$score.points}",
+    text: "Score:                     #{$score.points}",
     font: "fonts/font.otf"
 
   }
   args.outputs.labels << {
     x: 50,
     y: 650,
-    text: "Windows: #{$score.windows_missed} of #{$score.max_windows}",
+    text: "Missed Dance Floors     #{$score.windows_missed} of #{$score.max_windows}",
     font: "fonts/font.otf"
-
   }
   args.outputs.labels << {
     x: 50,
     y: 600,
-    text: "Highest stack: #{$score.highest_stack}",
+    text: "Highest Raver Tower    #{$score.highest_stack}",
     font: "fonts/font.otf"
 
   }
@@ -150,13 +146,13 @@ def tick_end_screen(args)
   args.outputs.labels << {
     x: 100,
     y: 50,
-    text: "Score: #{$score.points}",
+    text: "Score #{$score.points}",
     font: "fonts/font.otf"
   }
   args.outputs.labels << {
     x: 300,
     y: 50,
-    text: "Highest stack: #{$score.highest_stack}",
+    text: "Highest Raver Tower #{$score.highest_stack}",
     font: "fonts/font.otf"
   }
 end
@@ -195,6 +191,9 @@ def tick(args)
 
     if $score.has_died?
       $scene = :scene_end
+
+      $rave.delta_sync_time = args.audio[:music].playtime * 60.0
+      $rave.elapsed_time = 0
     end
 
   when :scene_end

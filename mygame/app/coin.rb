@@ -1,3 +1,5 @@
+COIN_TYPES = [:coin, :drink, :kebab, :sunglasses]
+
 class Coin
   attr_accessor :x, :y
   include Animatable
@@ -8,7 +10,7 @@ class Coin
       y: y,
       w: 100,
       h: 100,
-      path: "sprites/coin_#{sprite_id}.png",
+      path: "sprites/#{@type}_#{sprite_id}.png",
     }
   end
 
@@ -25,6 +27,7 @@ class Coin
     @x = x
     @y = y
     @animation_speed = 8
+    @type = COIN_TYPES.sample
   end
 end
 
@@ -36,7 +39,7 @@ class CoinSpawner
     @coins = []
 
     @last_spawn_at = 0
-    @spawn_interval = 5.seconds
+    @spawn_interval = 8.seconds
   end
 
   def tick
