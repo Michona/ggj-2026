@@ -41,13 +41,21 @@ def local_tick(args)
     $friends.move_right
   end
 
-  if Kernel.tick_count % 200 == 0
-    $friends.add_new_raver Raver.new(target: nil, x: 200, y: 200)
+  if Kernel.tick_count == 0
+    5.times.each do |i|
+      $friends.add_new_raver Raver.new(target: nil, x: 200, y: 200)
+    end
   end
 
-  if Kernel.tick_count % 500 == 0
-    $friends.remove_raver_closest_to({ x: 200, y: 200 })
-  end
+  # puts $friends.ravers[2].index
+
+  # if Kernel.tick_count % 200 == 0
+  #   $friends.add_new_raver Raver.new(target: nil, x: 200, y: 200)
+  # end
+  #
+  # if Kernel.tick_count % 500 == 0
+  #   $friends.remove_raver_closest_to({ x: 200, y: 200 })
+  # end
 
   # Check collision
   args.outputs.debug.watch $friends.is_flying

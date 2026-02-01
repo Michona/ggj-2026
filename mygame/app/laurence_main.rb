@@ -49,11 +49,13 @@ end
 
 # AKA the jiggle!
 class Spring
-  attr_accessor :m, :dt, :dt2, :cs, :cd, :s_max, :c_max
+  attr_accessor :m, :dt, :dt2, :cs_upper, :cs_lower, :cd_upper, :cd_lower, :s_max, :c_max
 
-  def initialize(cs, cd)
-    @cs = cs # stable stiffness coefficient 0 <= Cs <= 1
-    @cd = cd # stable damping coefficient 0 <= Cd <= 1
+  def initialize(cs_upper, cs_lower, cd_upper, cd_lower)
+    @cs_upper = cs_upper # stable stiffness coefficient 0 <= Cs <= 1
+    @cs_lower = cs_lower
+    @cd_upper = cd_upper # stable damping coefficient 0 <= Cd <= 1
+    @cd_lower = cd_lower
 
     @dt = 1.0 / 60.0 # delta time
     @dt2 = @dt ** 2
@@ -63,16 +65,11 @@ class Spring
 
   def spring(d0, d1, v1, i)
     dx = (d1 - d0).to_f
-    # uncomment to change direction of height dependant elasticity & dampening (i think)
-    # i = 1.0 / i
-    i_cs = 1.0
-    # uncomment to enable height-dependant elasticity
-    # i_cs = 1.0 - (0.6 / (1.0 + i))
-    i_cd = 1.0
-    # uncomment to enable height-dependant dampening
-    # i_cd = 1.0 - (0.1 / (1.0 + i))
-    f = -(i_cs * @cs * @s_max * dx) - (i_cd * @cd * @c_max * v1)
-    # f = f * temp
+
+    cs = @cs_lower + ((@cs_upper - @cs_lower) / (1.0 + i))
+    cd = @cd_lower + ((@cd_upper - @cd_lower) / (1.0 + i))
+
+    f = -(cs * @s_max * dx) - (cd *  @c_max * v1)
     a = f
 
     v = v1 + a * @dt

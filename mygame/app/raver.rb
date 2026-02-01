@@ -1,5 +1,6 @@
-$spring_x = Spring.new(0.3, 0.6)
-$spring_y = Spring.new(0.35, 0.55)
+$spring_x = Spring.new(0.4, 0.07, 0.6, 0.3)
+# $spring_x = Spring.new(0.4, 0.05, 0.8, 0.2)
+$spring_y = Spring.new(0.35, 0.35, 0.55, 0.55)
 
 class Raver
   attr_accessor :x, :y, :target, :velocity_y, :velocity_x
@@ -32,14 +33,22 @@ class Raver
 
   end
 
+  def index
+    if target.nil?
+      0
+    else
+      1 + @target.index
+    end
+  end
+
   def tick
     return if @target.nil?
 
-    sx = $spring_x.spring(@target.x, @x, @velocity_x, 1)
+    sx = $spring_x.spring(@target.x, @x, @velocity_x, index)
     @x = sx.d
     @velocity_x = sx.v
 
-    sy = $spring_y.spring(@target.y + 100, @y, @velocity_y, 1)
+    sy = $spring_y.spring(@target.y + 100, @y, @velocity_y, index)
     @y = sy.d
     @velocity_y = sy.v
   end
@@ -99,7 +108,7 @@ class Friends
     head_raver.x += head_raver.velocity_x
     head_raver.y += head_raver.velocity_y
 
-    head_raver.x = head_raver.x.clamp(0, 900)
+    head_raver.x = head_raver.x.clamp(0, 1280)
     head_raver.y = head_raver.y.clamp(@min_y, 720)
 
     @is_on_ground = head_raver.y == @min_y
@@ -170,21 +179,21 @@ class Friends
     coef = if @is_flying
              0.2
            else
-             5
+             10
            end
     head_raver.velocity_x -= speed * coef
-    head_raver.velocity_x = head_raver.velocity_x.greater(-10)
+    head_raver.velocity_x = head_raver.velocity_x.greater(-20)
   end
 
   def move_right(speed: 1)
     coef = if @is_flying
              0.2
            else
-             5
+             10
            end
 
     head_raver.velocity_x += speed * coef
-    head_raver.velocity_x = head_raver.velocity_x.lesser(10)
+    head_raver.velocity_x = head_raver.velocity_x.lesser(20)
   end
 
   def collide_with_platform(platform_y:)
