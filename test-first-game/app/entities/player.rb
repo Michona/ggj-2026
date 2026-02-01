@@ -1,41 +1,74 @@
 # Player entity class
 class Player
-  attr_accessor :x, :y, :w, :h, :speed, :horizontal_velocity
-  attr_reader :color
+  attr_accessor :x, :y, :w, :h, :speed, :target_lane, :current_lane
+  attr_reader :color, :lean_angle
 
   def initialize
-    @x = Config::PLAYER_START_X
+    @current_lane = Config::PLAYER_START_LANE
+    @target_lane = Config::PLAYER_START_LANE
+    @x = Config::LANES[@current_lane]
     @y = Config::PLAYER_Y_POSITION
     @w = Config::PLAYER_WIDTH
     @h = Config::PLAYER_HEIGHT
     @speed = Config::PLAYER_START_SPEED
-    @horizontal_velocity = 0  # Current horizontal movement speed
     @color = Config::PLAYER_COLOR
+    @lean_angle = 0  # Rotation angle for lean animation
   end
 
   def update
-    # Apply horizontal velocity
-    @x += @horizontal_velocity
+    # Smoothly move toward target lane
+    target_x = Config::LANES[@target_lane]
+    previous_x = @x
 
-    # Clamp to road boundaries
-    @x = [[@x, Config::ROAD_MIN_X].max, Config::ROAD_MAX_X].min
+    if @x < target_x
+      @x += Config::PLAYER_LANE_SWITCH_SPEED
+      @x = target_x if @x > target_x
+    elsif @x > target_x
+      @x -= Config::PLAYER_LANE_SWITCH_SPEED
+      @x = target_x if @x < target_x
+    end
+
+    # Update current lane when we reach target
+    if @x == target_x
+      @current_lane = @target_lane
+    end
+
+    # Update lean angle based on movement direction
+    update_lean_angle(previous_x)
+  end
+
+  def update_lean_angle(previous_x)
+    # Calculate lean based on horizontal movement
+    max_lean = 5  # Maximum lean angle in degrees
+
+    if @x > previous_x
+      # Moving right - lean right
+      @lean_angle = -max_lean
+    elsif @x < previous_x
+      # Moving left - lean left
+      @lean_angle = max_lean
+    else
+      # Not moving - return to upright
+      # Smoothly interpolate back to 0
+      @lean_angle *= 0.8
+      @lean_angle = 0 if @lean_angle.abs < 0.1
+    end
   end
 
   def move_left
-    @horizontal_velocity = -Config::PLAYER_HORIZONTAL_SPEED
+    @target_lane = [@target_lane - 1, 0].max
   end
 
   def move_right
-    @horizontal_velocity = Config::PLAYER_HORIZONTAL_SPEED
+    @target_lane = [@target_lane + 1, Config::NUM_LANES - 1].min
   end
 
-  def stop_horizontal_movement
-    @horizontal_velocity = 0
-  end
-
-  def hit_obstacle
+  def hit_obstacle(camera = nil)
     @speed -= Config::SPEED_DECAY_ON_HIT
     @speed = [@speed, 0].max
+
+    # Trigger camera shake on impact
+    camera.trigger_shake(5) if camera
   end
 
   def collect_coin
@@ -47,14 +80,25 @@ class Player
   end
 
   def reset
-    @x = Config::PLAYER_START_X
+    @current_lane = Config::PLAYER_START_LANE
+    @target_lane = Config::PLAYER_START_LANE
+    @x = Config::LANES[@current_lane]
     @y = Config::PLAYER_Y_POSITION
     @speed = Config::PLAYER_START_SPEED
-    @horizontal_velocity = 0
   end
 
   def bounds
-    { x: @x, y: @y, w: @w, h: @h }
+    # Forgiving hitbox: 65% of visual size, centered at bottom (feet)
+    # This prevents frustrating collisions in isometric view
+    hitbox_scale = 0.65
+    hitbox_w = @w * hitbox_scale
+    hitbox_h = @h * hitbox_scale
+
+    # Center horizontally, align to bottom vertically
+    hitbox_x = @x
+    hitbox_y = @y
+
+    { x: hitbox_x, y: hitbox_y, w: hitbox_w, h: hitbox_h }
   end
 end
 

@@ -20,8 +20,8 @@ class Game
       # Spawn new entities
       @spawner.update(@game_state)
 
-      # Check collisions
-      @collision_detector.check_collisions(@game_state)
+      # Check collisions (pass camera for shake effect)
+      @collision_detector.check_collisions(@game_state, @renderer.camera)
     end
 
     # Render everything

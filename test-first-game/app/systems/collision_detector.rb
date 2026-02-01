@@ -1,13 +1,13 @@
 # Collision detection system
 class CollisionDetector
-  def check_collisions(game_state)
+  def check_collisions(game_state, camera = nil)
     player = game_state.player
     player_bounds = player.bounds
 
     # Check obstacle collisions
     game_state.obstacles.each do |obstacle|
       if boxes_overlap?(player_bounds, obstacle.bounds)
-        player.hit_obstacle
+        player.hit_obstacle(camera)
         game_state.obstacles.delete(obstacle)
       end
     end

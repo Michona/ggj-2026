@@ -1,11 +1,18 @@
 # Obstacle entity class
 class Obstacle
-  attr_accessor :x, :y, :w, :h
+  attr_accessor :x, :y, :w, :h, :lane, :lane_span
   attr_reader :color
 
-  def initialize(x_position, width, distance)
-    @x = x_position
-    @w = width
+  def initialize(lane, lane_span, distance)
+    @lane = lane
+    @lane_span = lane_span
+
+    # Calculate position and size based on lane span
+    lane_start_x = Config::LANES[@lane]
+    lane_end_x = Config::LANES[@lane + @lane_span - 1]
+    @x = (lane_start_x + lane_end_x) / 2.0
+    @w = (lane_end_x - lane_start_x).abs + Config::LANE_WIDTH
+
     @y = distance
     @h = Config::OBSTACLE_HEIGHT
     @color = Config::OBSTACLE_COLORS.sample
@@ -22,7 +29,21 @@ class Obstacle
   end
 
   def bounds
-    { x: @x, y: @y, w: @w, h: @h }
+    # Forgiving hitbox: 65% of visual size, centered at bottom
+    hitbox_scale = 0.65
+    hitbox_w = @w * hitbox_scale
+    hitbox_h = @h * hitbox_scale
+
+    # Center horizontally, align to bottom vertically
+    hitbox_x = @x
+    hitbox_y = @y
+
+    { x: hitbox_x, y: hitbox_y, w: hitbox_w, h: hitbox_h }
+  end
+
+  # Check if obstacle occupies a specific lane
+  def occupies_lane?(lane_index)
+    lane_index >= @lane && lane_index < (@lane + @lane_span)
   end
 end
 

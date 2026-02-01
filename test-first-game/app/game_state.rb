@@ -1,6 +1,7 @@
 # Game state management
 class GameState
   attr_accessor :player, :obstacles, :coins, :score, :distance, :game_over, :road_offset
+  attr_reader :difficulty_multiplier
 
   def initialize
     @player = Player.new
@@ -10,11 +11,15 @@ class GameState
     @distance = 0
     @road_offset = 0  # Tracks road animation at same speed as objects
     @game_over = false
+    @difficulty_multiplier = 1.0
   end
 
   def update
     # Update distance based on player speed (for score display)
     @distance += @player.speed * Config::DISTANCE_MULTIPLIER
+
+    # Update difficulty multiplier based on distance
+    update_difficulty
 
     # Update road offset at constant world-space speed (same as objects)
     # Both road markings and objects move at constant speed in world space
@@ -46,6 +51,20 @@ class GameState
     @distance = 0
     @road_offset = 0
     @game_over = false
+    @difficulty_multiplier = 1.0
+  end
+
+  private
+
+  def update_difficulty
+    # Difficulty starts ramping after a certain distance
+    if @distance > Config::DIFFICULTY_RAMP_START
+      excess_distance = @distance - Config::DIFFICULTY_RAMP_START
+      @difficulty_multiplier = 1.0 + (excess_distance * Config::DIFFICULTY_RAMP_RATE)
+      @difficulty_multiplier = [@difficulty_multiplier, Config::MAX_DIFFICULTY_MULTIPLIER].min
+    else
+      @difficulty_multiplier = 1.0
+    end
   end
 end
 

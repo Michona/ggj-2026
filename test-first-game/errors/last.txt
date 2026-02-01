@@ -1,6 +1,0 @@
-* EXCEPTION: uninitialized constant Config::PLAYER_MIN_X
-** Backtrace:
-*** app/entities/player.rb:21:in update
-*** app/game_state.rb:25:in update
-*** app/game.rb:18:in tick
-*** app/main.rb:33:in tick

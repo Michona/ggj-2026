@@ -11,13 +11,15 @@ module Config
   WORLD_DEPTH = 1000  # Maximum depth in world coordinates
   CAMERA_Y_OFFSET = 0  # Road starts at bottom of screen (y=0)
 
-  # Road configuration (world coordinates)
-  ROAD_MIN_X = -450  # Left edge of road
-  ROAD_MAX_X = 450   # Right edge of road
-  ROAD_WIDTH = ROAD_MAX_X - ROAD_MIN_X  # Total road width
+  # Lane configuration (world coordinates)
+  LANE_WIDTH = 150
+  LANES = [-300, -150, 0, 150, 300]  # X positions for 5 lanes (Left, Center-Left, Center, Center-Right, Right)
+  NUM_LANES = LANES.length
 
-  # Lane markings (for visual reference only, not used for gameplay)
-  LANE_DIVIDER_POSITIONS = [-150, 150]  # X positions of the 2 lane dividers
+  # Road configuration (derived from lanes)
+  ROAD_MIN_X = LANES.first - LANE_WIDTH / 2  # Left edge of road
+  ROAD_MAX_X = LANES.last + LANE_WIDTH / 2   # Right edge of road
+  ROAD_WIDTH = ROAD_MAX_X - ROAD_MIN_X  # Total road width
 
   # Player settings
   PLAYER_START_X = 0  # Center of road (world coordinates)
@@ -50,6 +52,13 @@ module Config
   GAME_OVER_THRESHOLD = 0.1
   SPEED_DECAY_ON_HIT = 2.0
   DISTANCE_MULTIPLIER = 0.1  # How fast distance accumulates
+
+  # Difficulty ramping
+  DIFFICULTY_RAMP_START = 500  # Distance at which difficulty starts increasing
+  DIFFICULTY_RAMP_RATE = 0.0001  # How quickly difficulty increases per distance unit
+  MAX_DIFFICULTY_MULTIPLIER = 2.5  # Maximum difficulty multiplier
+  BASE_OBSTACLE_SPAWN_INTERVAL = 150  # Base distance between obstacles
+  MIN_OBSTACLE_SPAWN_INTERVAL = 80  # Minimum distance between obstacles at max difficulty
 
   # Road rendering
   ROAD_COLOR = { r: 40, g: 45, b: 50 }

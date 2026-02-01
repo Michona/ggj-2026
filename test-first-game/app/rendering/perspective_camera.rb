@@ -6,6 +6,28 @@ class PerspectiveCamera
     @perspective_strength = Config::PERSPECTIVE_STRENGTH
     @world_depth = Config::WORLD_DEPTH
     @camera_y_offset = Config::CAMERA_Y_OFFSET
+    @shake_timer = 0
+    @shake_offset_x = 0
+    @shake_offset_y = 0
+  end
+
+  def trigger_shake(intensity = 5)
+    # Trigger camera shake with given intensity (duration in frames)
+    @shake_timer = intensity * 6  # 6 frames per intensity level
+  end
+
+  def update
+    # Update shake effect
+    if @shake_timer > 0
+      # Generate random shake offset
+      shake_magnitude = (@shake_timer / 6.0).ceil  # Decreases as timer counts down
+      @shake_offset_x = (rand * shake_magnitude * 2) - shake_magnitude
+      @shake_offset_y = (rand * shake_magnitude * 2) - shake_magnitude
+      @shake_timer -= 1
+    else
+      @shake_offset_x = 0
+      @shake_offset_y = 0
+    end
   end
 
   # Calculate perspective scale based on depth (y position in world)
@@ -31,11 +53,15 @@ class PerspectiveCamera
     depth_ratio = world_y / @world_depth
     depth_ratio = [[depth_ratio, 0].max, 1].min
 
-    screen_x = @vanishing_point_x + (world_x * scale)
+    # Apply shake offset to vanishing point
+    vp_x = @vanishing_point_x + @shake_offset_x
+    vp_y = @vanishing_point_y + @shake_offset_y
+
+    screen_x = vp_x + (world_x * scale)
 
     # Y: map world depth to screen height
     # Near objects (y=0) appear at bottom, far objects (y=world_depth) appear at vanishing point
-    screen_y = @camera_y_offset + (depth_ratio * (@vanishing_point_y - @camera_y_offset))
+    screen_y = @camera_y_offset + (depth_ratio * (vp_y - @camera_y_offset))
 
     return { x: screen_x, y: screen_y, scale: scale }
   end
